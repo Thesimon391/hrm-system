@@ -62,9 +62,43 @@ public class Contrato {
         );
     }
 
+    public void marcarComoVencidoSiAplica(LocalDate hoy) {
+        if (EstadoContrato.VIGENTE.equals(this.estado)
+                && this.fechaFin != null
+                && this.fechaFin.isBefore(hoy)) {
+            this.estado = EstadoContrato.VENCIDO;
+        }
+    }
+
+    public void validarRenovable(LocalDate hoy) {
+        marcarComoVencidoSiAplica(hoy);
+        if (!EstadoContrato.VIGENTE.equals(this.estado)) {
+            throw new IllegalArgumentException("Solo se puede renovar un contrato con estado VIGENTE");
+        }
+    }
+
     public void renovar(LocalDate nuevaFechaFin) {
-        this.fechaFin = nuevaFechaFin;
+        if (nuevaFechaFin == null) {
+            throw new IllegalArgumentException("La nueva fecha de fin es obligatoria");
+        }
+        if (this.fechaFin != null && !nuevaFechaFin.isAfter(this.fechaFin)) {
+            throw new IllegalArgumentException("La nueva fecha de fin debe ser posterior a la fecha de fin actual");
+        }
         this.estado = EstadoContrato.RENOVADO;
+    }
+
+    public Contrato crearRenovacion(LocalDate nuevaFechaFin) {
+        LocalDate nuevaFechaInicio = this.fechaFin != null ? this.fechaFin.plusDays(1) : LocalDate.now();
+        return new Contrato(
+                null,
+                this.empleadoId,
+                this.tipo,
+                this.salarioBase,
+                nuevaFechaInicio,
+                nuevaFechaFin,
+                EstadoContrato.VIGENTE,
+                null
+        );
     }
 
     public void terminar(String motivo) {

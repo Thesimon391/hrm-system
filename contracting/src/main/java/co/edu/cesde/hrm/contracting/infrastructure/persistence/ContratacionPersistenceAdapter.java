@@ -8,6 +8,7 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Optional;
 
 @Component
 public class ContratacionPersistenceAdapter implements ContratacionPersistencePort {
@@ -22,8 +23,10 @@ public class ContratacionPersistenceAdapter implements ContratacionPersistencePo
 
     @Override
     public Empleado saveEmpleado(Empleado empleado) {
-        EmpleadoJpaEntity entity = new EmpleadoJpaEntity();
-        entity.setId(empleado.getId());
+        EmpleadoJpaEntity entity = empleado.getId() != null
+                ? empleadoJpaRepo.findById(empleado.getId()).orElseGet(EmpleadoJpaEntity::new)
+                : new EmpleadoJpaEntity();
+
         entity.setAspiranteId(empleado.getAspiranteId());
         entity.setNombres(empleado.getNombres());
         entity.setApellidos(empleado.getApellidos());
@@ -40,11 +43,13 @@ public class ContratacionPersistenceAdapter implements ContratacionPersistencePo
 
     @Override
     public Contrato saveContrato(Contrato contrato) {
+        ContratoJpaEntity entity = contrato.getId() != null
+                ? contratoJpaRepo.findById(contrato.getId()).orElseGet(ContratoJpaEntity::new)
+                : new ContratoJpaEntity();
+
         EmpleadoJpaEntity empleado = empleadoJpaRepo.findById(contrato.getEmpleadoId())
                 .orElseThrow(() -> new EntityNotFoundException("No existe el empleado asociado al contrato"));
 
-        ContratoJpaEntity entity = new ContratoJpaEntity();
-        entity.setId(contrato.getId());
         entity.setEmpleado(empleado);
         entity.setTipo(contrato.getTipo());
         entity.setSalarioBase(contrato.getSalarioBase());
@@ -63,6 +68,43 @@ public class ContratacionPersistenceAdapter implements ContratacionPersistencePo
         return empleadoJpaRepo.existsByAspiranteIdAndEstadoIn(
                 aspiranteId,
                 List.of(EstadoEmpleado.ACTIVO, EstadoEmpleado.EN_PERIODO_PRUEBA)
+        );
+    }
+
+    @Override
+    public Optional<Empleado> findEmpleadoById(Long empleadoId) {
+        return empleadoJpaRepo.findById(empleadoId).map(this::toDomainEmpleado);
+    }
+
+    @Override
+    public Optional<Contrato> findContratoById(Long contratoId) {
+        return contratoJpaRepo.findById(contratoId).map(this::toDomainContrato);
+    }
+
+    private Empleado toDomainEmpleado(EmpleadoJpaEntity entity) {
+        return new Empleado(
+                entity.getId(),
+                entity.getAspiranteId(),
+                entity.getNombres(),
+                entity.getApellidos(),
+                entity.getEmail(),
+                entity.getCargo(),
+                entity.getDepartamento(),
+                entity.getEstado(),
+                entity.getFechaIngreso()
+        );
+    }
+
+    private Contrato toDomainContrato(ContratoJpaEntity entity) {
+        return new Contrato(
+                entity.getId(),
+                entity.getEmpleado().getId(),
+                entity.getTipo(),
+                entity.getSalarioBase(),
+                entity.getFechaInicio(),
+                entity.getFechaFin(),
+                entity.getEstado(),
+                entity.getMotivoTerminacion()
         );
     }
 }

@@ -2,6 +2,8 @@ package co.edu.cesde.hrm.contracting.infrastructure.rest;
 
 import co.edu.cesde.hrm.contracting.application.dto.ErrorResponse;
 import co.edu.cesde.hrm.contracting.application.exception.ConflictException;
+import co.edu.cesde.hrm.contracting.application.exception.NotFoundException;
+import co.edu.cesde.hrm.contracting.application.exception.UnprocessableEntityException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -49,7 +51,18 @@ public class GlobalExceptionHandler {
         ));
     }
 
-    @ExceptionHandler({EntityNotFoundException.class, IllegalArgumentException.class})
+    @ExceptionHandler({NotFoundException.class, EntityNotFoundException.class})
+    public ResponseEntity<ErrorResponse> handleNotFound(RuntimeException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(
+                HttpStatus.NOT_FOUND.value(),
+                HttpStatus.NOT_FOUND.getReasonPhrase(),
+                ex.getMessage(),
+                List.of(),
+                LocalDateTime.now()
+        ));
+    }
+
+    @ExceptionHandler({UnprocessableEntityException.class, IllegalArgumentException.class})
     public ResponseEntity<ErrorResponse> handleDomain(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(new ErrorResponse(
                 HttpStatus.UNPROCESSABLE_ENTITY.value(),
